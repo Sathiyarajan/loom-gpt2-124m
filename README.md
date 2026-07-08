@@ -618,8 +618,22 @@ re-discovers them the hard way.
 4. **Real from-scratch pretraining run** — deliberately skipped for the vanilla Hub
    push since a 124M model trained from scratch on a single 8GB laptop GPU wouldn't
    reach meaningful quality regardless of wrapper code. `scripts/run_pretrain.py` now
-   exists and works — worth a longer run on a bigger local corpus later purely to
-   demonstrate the from-scratch pipeline end-to-end, not as a quality play.
+   exists and works, and needs no GPT-2 weights at all — `GPTModel(GPT_CONFIG_124M)`
+   inits from random weights, trains purely on whatever corpus `--corpus` points at.
+
+   **Reality check on cost**: the real GPT-2 124M was trained on ~40GB WebText
+   (~9-10B tokens) across many GPU-days on datacenter hardware. Measured on this
+   repo's hardware: ~2-4 min per epoch per 1M tokens at batch_size=4/context=256 — to
+   approach real GPT-2 quality you'd need billions of tokens x multiple epochs, i.e.
+   weeks to months of continuous training. Not realistic on a single 8GB laptop GPU.
+
+   **What's realistic instead**: swap `data/raw/the-verdict.txt` (20KB toy corpus,
+   currently only good for pipeline smoke-testing) for something bigger and still
+   public-domain — WikiText-103 (~500MB) or a Project Gutenberg dump (multi-GB).
+   Example budget: 100MB corpus (~25M tokens) x 3 epochs at the measured rate is
+   roughly 2-5 hours, an overnight run. Resulting model should be scoped and
+   communicated as "small-corpus from-scratch GPT-2-architecture model" — proves the
+   architecture trains correctly end-to-end, not a claim of GPT-2-competitive quality.
 5. **pytest suite** — no automated tests exist; current verification is inline
    scripts per module (shape/loss/accuracy checks), documented but not preserved as
    real tests. Would catch regressions if `loom/model/` architecture changes without
