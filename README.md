@@ -1,11 +1,10 @@
 # loom
 
-Personal capstone implementation of Sebastian Raschka's *Build a Large Language Model
-(From Scratch)* (Manning, 2024). Structural reference:
-https://github.com/rasbt/LLMs-from-scratch — reorganized as a clean, reusable personal
-reference project, not a copy of the book's notebooks.
+Personal capstone project: a GPT-2-style decoder-only transformer built from scratch,
+organized as a clean, reusable personal reference project rather than a research
+codebase.
 
-Covers the full arc of the book:
+Covers the full arc from raw text to a deployable fine-tuned model:
 - **Ch1-4**: text pipeline, self/causal/multi-head attention, GPT architecture
 - **Ch5**: pretraining loop, checkpointing, loading OpenAI's pretrained GPT-2 weights
 - **Ch6**: classification fine-tuning (spam detection)
@@ -59,6 +58,7 @@ uv pip install -r requirements.txt
 ```
 loom/
 ├── config.py                    # single source of truth: GPTConfig/TrainConfig/LoRAConfig + size presets
+├── README.md / CLAUDE.md / CHANGELOG.md / LICENSE
 ├── data/
 │   ├── raw/the-verdict.txt              # Ch1-5 pretrain smoke-test corpus (public domain)
 │   ├── raw/sms_spam/SMSSpamCollection   # Ch6 classification dataset
@@ -77,7 +77,7 @@ loom/
 │   ├── finetune/
 │   │   ├── classifier.py     # spam/ham classification head + training loop
 │   │   ├── instruction.py    # Alpaca-style instruction fine-tuning
-│   │   └── lora.py           # LoRA: low-rank adapters on attention q/v projections
+│   │   └── lora.py           # LoRA: low-rank adapters on attention q/k/v projections + merge_lora()
 │   ├── eval/metrics.py       # loss calc, greedy/top-k/temperature generation
 │   └── utils/seed.py         # reproducibility
 ├── scripts/
@@ -85,8 +85,16 @@ loom/
 │   ├── run_finetune_classifier.py    # empty — CLI wrapper, TODO
 │   ├── run_finetune_instruction.py   # empty — CLI wrapper, TODO
 │   ├── run_lora.py                   # empty — CLI wrapper, TODO
-│   └── run_eval.py                   # DONE — base vs fine-tuned comparison
-├── checkpoints/              # gitignored — model weight dumps
+│   ├── run_eval.py                   # DONE — base vs fine-tuned comparison
+│   ├── _save_vanilla_gpt2.py         # DONE — one-off: saves real GPT-2 weights as a checkpoint (no training)
+│   └── _train_lora_instruct.py       # DONE — one-off: LoRA + instruction fine-tune combined
+├── hub_export/                # HF Hub publishing pipeline (see "Publishing" section below)
+│   ├── configuration_loom.py / modeling_loom.py   # self-contained HF wrapper
+│   ├── export_to_hub.py                           # checkpoint -> HF model, parity-checked
+│   ├── MODEL_CARD_vanilla.md / MODEL_CARD.md / MODEL_CARD_lora.md  # per-variant model cards
+│   └── export/                # gitignored — local save-before-push staging dir
+├── checkpoints/              # gitignored — model weight dumps (smoketest/, vanilla_gpt2/,
+│                              # instruction_ft/, lora_instruct/)
 └── notebooks/                # optional scratch exploration
 ```
 
@@ -539,18 +547,37 @@ re-discovers them the hard way.
 - [x] Ch6: classification fine-tuning (spam detection, 86.3% val accuracy after 1 epoch)
 - [x] Ch7: instruction fine-tuning (Alpaca format) + LoRA
 - [x] Eval script: base vs fine-tuned side-by-side comparison
+- [x] HF Hub publishing pipeline (`hub_export/`), 3 models pushed: vanilla, instruction-tuned
+      (full fine-tune), instruction-tuned (LoRA, merged)
+- [x] Repo pushed to GitHub: `https://github.com/Sathiyarajan/loom-gpt2-124m`
 
-## What I'd extend next time I revisit this
+## Next steps
 
-1. **Mixed precision + gradient accumulation** — currently full fp32; adding
+1. **CLI wrappers for `scripts/run_*.py`** — the underlying train/fine-tune functions
+   are all done and tested inline; wrapping them in argparse would make this a
+   real from-the-terminal tool instead of copy-pasted verification snippets. Highest
+   priority since it's the only "not done" item blocking a clean CLI experience.
+2. **LoRA + classification, published as a 4th model** — code path exists
+   (`add_classification_head` + `apply_lora`, see onboarding step 10) but produces a
+   2-class head, not a causal-LM — needs a second HF wrapper class
+   (`LoomGPTForSequenceClassification` / `AutoModelForSequenceClassification`) and its
+   own export script variant before it can be pushed to the Hub alongside the other
+   three.
+3. **Mixed precision + gradient accumulation** — currently full fp32; adding
    `torch.cuda.amp` would let the 8GB card handle bigger context/batch without
    changing any model code, since it's purely a training-loop concern.
-2. **CLI wrappers for `scripts/run_*.py`** — the underlying train/fine-tune functions
-   are all done and tested inline; wrapping them in argparse would make this a
-   real from-the-terminal tool instead of copy-pasted verification snippets.
-3. **Editable install (`pyproject.toml` + `pip install -e .`)** — would remove the
+4. **Editable install (`pyproject.toml` + `pip install -e .`)** — would remove the
    `PYTHONPATH=.` requirement and make `loom` importable from anywhere, which matters
    since this is meant to be a long-term reusable reference, not a one-off script dir.
+5. **Real from-scratch pretraining run** (`scripts/run_pretrain.py`) — deliberately
+   skipped for the vanilla Hub push since a 124M model trained from scratch on a single
+   8GB laptop GPU wouldn't reach meaningful quality regardless of wrapper code. Worth
+   doing later purely to demonstrate the from-scratch pipeline end-to-end on a bigger
+   local corpus, not as a quality play.
+6. **pytest suite** — no automated tests exist; current verification is inline
+   scripts per module (shape/loss/accuracy checks), documented but not preserved as
+   real tests. Would catch regressions if `loom/model/` architecture changes without
+   someone remembering to also update `hub_export/modeling_loom.py`'s duplicated copy.
 
 ## Known gaps
 
@@ -567,6 +594,33 @@ re-discovers them the hard way.
   self-contained export is required for `trust_remote_code=True` to work for others.
   If the architecture changes in `loom/model/`, remember to update this copy too —
   no shared source of truth between the two right now (see "What I'd extend").
-- Hub repo not yet actually pushed — `YOUR_USERNAME/loom-llm` throughout the
-  Publishing section is a placeholder; push requires running `hf auth login`
-  interactively with your own token (deliberately not automatable/scriptable here)
+- LoRA + classification (spam/ham with adapters) not yet published to the Hub — see
+  "Next steps" above, needs a second HF wrapper class since it's not a causal-LM
+
+## Built via loop engineering
+
+This entire project was built through a sequence of scoped prompts ("loops") fed to
+Claude Code, each one picking up exactly where the last left off via a
+"Carry-Forward Repo State" block (current file tree + what's done/TODO). Full prompt
+text for every loop: [`spec_for_loom_llm_from_scratch.md`](spec_for_loom_llm_from_scratch.md).
+
+To rebuild this project the same way:
+
+1. **Loop 0 — Scaffolding**: describe your hardware/environment, ask for folder
+   structure + central `config.py` only, no implementation code yet. End with a
+   carry-forward state block.
+2. **Loop 1 — Foundation**: paste the carry-forward state back in, ask for
+   tokenizer/dataset/attention/GPT-model, step-by-step with a verification checkpoint
+   after each concept (e.g. forward pass shape check).
+3. **Loop 2 — Pretraining**: training loop, checkpointing, gradient clipping,
+   periodic sample generation, hardware-specific batch/context sizing.
+4. **Loop 3 — Fine-tuning**: load pretrained weights, classification head,
+   instruction fine-tuning, base-vs-fine-tuned comparison eval.
+5. **Loop 4 — LoRA + packaging**: parameter-efficient fine-tuning, top-level README,
+   architecture diagram, "why" comments.
+6. **Loop 5 — Publishing**: convert to a Hub-loadable format, write model cards,
+   push, verify with a clean-session reload.
+
+Key discipline that made this work: every loop ends by asking for an explicit
+carry-forward state (file tree + done/TODO markers), and every loop starts by pasting
+that state back in — the model never has to guess what already exists.

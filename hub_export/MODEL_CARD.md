@@ -10,14 +10,12 @@ tags:
 # loom-gpt2-124m-instruct
 
 A from-scratch GPT-2-architecture language model, implemented and fine-tuned as a
-personal capstone project following Sebastian Raschka's *Build a Large Language Model
-(From Scratch)* (Manning, 2024). Structural reference:
-[rasbt/LLMs-from-scratch](https://github.com/rasbt/LLMs-from-scratch).
+personal capstone project.
 
 **This is an educational implementation, not a production model.** The architecture
-(attention, transformer blocks, GPT model) was hand-written from the book rather than
-imported from a library, then initialized from OpenAI's public GPT-2 small (124M)
-weights and instruction-fine-tuned on a small (1100-example) Alpaca-format dataset.
+(attention, transformer blocks, GPT model) was hand-written rather than imported from
+a library, then initialized from OpenAI's public GPT-2 small (124M) weights and
+instruction-fine-tuned on a small (1100-example) Alpaca-format dataset.
 
 ## Model description
 
@@ -30,7 +28,7 @@ weights and instruction-fine-tuned on a small (1100-example) Alpaca-format datas
 ## Training data
 
 - **Instruction fine-tuning**: 1100 examples, Alpaca-style instruction/input/output
-  triples (source: rasbt/LLMs-from-scratch ch07 dataset)
+  triples
 - 85/10/5 train/val/test split
 - 1 epoch, AdamW, lr=5e-5, batch_size=4, max sequence length 256 tokens (padded,
   loss masked on padding via `ignore_index=-100`)
@@ -78,12 +76,7 @@ output_ids = model.generate_simple(input_ids, max_new_tokens=40)
 print(enc.decode(output_ids[0].tolist()))
 ```
 
-## Citation
-
-If referencing this project, cite the underlying book:
-
-> Raschka, S. (2024). *Build a Large Language Model (From Scratch)*. Manning.
+## Source
 
 Project source (full training pipeline, not just this exported checkpoint):
-`https://github.com/YOUR_USERNAME/loom` *(update once repo is pushed to GitHub, if
-ever made public — currently local-only)*.
+`https://github.com/Sathiyarajan/loom-gpt2-124m`.

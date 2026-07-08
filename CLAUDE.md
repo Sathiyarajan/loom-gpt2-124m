@@ -4,10 +4,10 @@ Guidance for Claude Code sessions working in this repo.
 
 ## What this is
 
-Capstone implementation of Sebastian Raschka's *Build a Large Language Model (From
-Scratch)* (Manning, 2024). Structural reference: rasbt/LLMs-from-scratch, reorganized
-as a clean personal reference project — not a copy of the book's notebooks. Full
-details, architecture diagram, and per-stage run instructions: see `README.md`.
+Personal capstone project: a GPT-2-style language model built from scratch (tokenizer,
+attention, transformer blocks, pretraining, fine-tuning, LoRA), organized as a clean,
+reusable reference implementation. Full details, architecture diagram, and per-stage
+run instructions: see `README.md`.
 
 ## Environment (do not re-derive, already solved)
 

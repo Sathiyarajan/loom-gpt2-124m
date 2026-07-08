@@ -11,7 +11,7 @@ import torch.nn as nn
 from transformers import PreTrainedModel
 from transformers.modeling_outputs import CausalLMOutput
 
-from configuration_loom import LoomConfig
+from .configuration_loom import LoomConfig
 
 
 class MultiHeadAttention(nn.Module):
@@ -100,6 +100,7 @@ class LoomGPTForCausalLM(PreTrainedModel):
         self.trf_blocks = nn.Sequential(*[TransformerBlock(config) for _ in range(config.n_layers)])
         self.final_norm = LayerNorm(config.emb_dim)
         self.out_head = nn.Linear(config.emb_dim, config.vocab_size, bias=False)
+        self.post_init()
 
     def forward(self, input_ids, labels=None, **kwargs):
         b, seq_len = input_ids.shape
