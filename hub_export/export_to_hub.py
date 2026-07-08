@@ -1,18 +1,22 @@
 """Convert our trained GPTModel checkpoint into the HF-loadable LoomGPTForCausalLM,
 verify output parity against the original, then save + (optionally) push to Hub.
 
-Usage:
-    cd ~/projects/loom/hub_export
-    PYTHONPATH=..:. python export_to_hub.py --checkpoint ../checkpoints/demo/checkpoint.pt --repo-id YOUR_USERNAME/loom-llm
+Usage (run as a module from repo root, so relative imports in modeling_loom.py
+resolve the same way they will when HF loads this package via trust_remote_code):
+    cd ~/projects/loom
+    PYTHONPATH=. python -m hub_export.export_to_hub \
+        --checkpoint checkpoints/demo/checkpoint.pt --repo-id YOUR_USERNAME/loom-llm
 """
 import argparse
+import os
 
 import torch
 
 from config import GPT_CONFIG_124M_PRETRAINED
-from configuration_loom import LoomConfig
 from loom.model.gpt import GPTModel
-from modeling_loom import LoomGPTForCausalLM
+
+from .configuration_loom import LoomConfig
+from .modeling_loom import LoomGPTForCausalLM
 
 
 def build_hf_model(gpt_cfg, state_dict) -> LoomGPTForCausalLM:
@@ -72,7 +76,7 @@ def main():
     hf_model = build_hf_model(gpt_cfg, checkpoint["model_state_dict"])
     verify_parity(original_model, hf_model, gpt_cfg, device)
 
-    save_dir = "./export"
+    save_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "export")
     hf_model.save_pretrained(save_dir)
     print(f"saved locally to {save_dir}/ (config.json + model.safetensors)")
 

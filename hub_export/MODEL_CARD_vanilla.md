@@ -10,18 +10,16 @@ tags:
 
 A from-scratch GPT-2-architecture implementation, initialized directly with OpenAI's
 public GPT-2 small (124M) weights and **not fine-tuned at all**. Built as a personal
-capstone project following Sebastian Raschka's *Build a Large Language Model (From
-Scratch)* (Manning, 2024). Structural reference:
-[rasbt/LLMs-from-scratch](https://github.com/rasbt/LLMs-from-scratch).
+capstone project.
 
 **This is an educational implementation, not a production model.** The architecture
-(attention, transformer blocks, GPT model) was hand-written from the book rather than
-imported from a library, then verified to correctly load and reproduce OpenAI's GPT-2
-small checkpoint (parity-checked against the original weights, max logit diff < 1e-4).
+(attention, transformer blocks, GPT model) was hand-written rather than imported from
+a library, then verified to correctly load and reproduce OpenAI's GPT-2 small
+checkpoint (parity-checked against the original weights, max logit diff < 1e-4).
 
 This is the **vanilla baseline** in the `loom` model family — no fine-tuning of any
-kind applied. See `msclaw/loom-gpt2-124m-instruct` (if/when pushed) for the
-instruction-tuned variant built on top of this same base.
+kind applied. See `msclaw/loom-gpt2-124m-instruct` for the instruction-tuned variant
+built on top of this same base.
 
 ## Model description
 
@@ -69,12 +67,7 @@ output_ids = model.generate_simple(input_ids, max_new_tokens=40)
 print(enc.decode(output_ids[0].tolist()))
 ```
 
-## Citation
-
-If referencing this project, cite the underlying book:
-
-> Raschka, S. (2024). *Build a Large Language Model (From Scratch)*. Manning.
+## Source
 
 Project source (full training pipeline, not just this exported checkpoint):
-`https://github.com/msclaw/loom` *(update once repo is pushed to GitHub, if ever made
-public — currently local-only)*.
+`https://github.com/Sathiyarajan/loom-gpt2-124m`.
